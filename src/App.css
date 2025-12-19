@@ -3,6 +3,15 @@
   width: 100%;
 }
 
+.appLoading {
+  height: 100%;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
 .snakeGame {
   position: relative;
   height: 100%;
