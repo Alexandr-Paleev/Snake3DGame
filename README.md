@@ -31,4 +31,4 @@ npm run build
 npm run preview
 ```
 
-`https://alexandr-paleev.github.io/Snake3DGame/`
+[Live demo](https://alexandr-paleev.github.io/Snake3DGame/)
