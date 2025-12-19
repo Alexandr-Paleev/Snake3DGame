@@ -1,0 +1,195 @@
+.appRoot {
+  height: 100%;
+  width: 100%;
+}
+
+.snakeGame {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+.snakeGameCanvas {
+  height: 100%;
+  width: 100%;
+}
+
+.snakeGameCanvas > canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.snakeHud {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 2;
+  padding: 12px 12px;
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  backdrop-filter: blur(10px);
+  color: rgba(255, 255, 255, 0.92);
+  max-width: min(560px, calc(100% - 28px));
+}
+
+.snakeHudRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.snakeHudLabel {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.snakeHudValue {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.snakeHudHint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.snakeOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  background: rgba(2, 6, 23, 0.55);
+  backdrop-filter: blur(6px);
+}
+
+.snakeOverlayCard {
+  width: min(480px, calc(100% - 32px));
+  border-radius: 16px;
+  padding: 18px 18px;
+  background: rgba(2, 6, 23, 0.75);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.snakeOverlayTitle {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.snakeOverlayText {
+  color: rgba(255, 255, 255, 0.78);
+  margin-bottom: 12px;
+}
+
+.snakeOverlayActions {
+  display: flex;
+  gap: 10px;
+}
+
+.snakeTouchControls {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.snakeJoystick {
+  position: absolute;
+  left: calc(env(safe-area-inset-left, 0px) + 16px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  width: 140px;
+  height: 140px;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.snakeJoystickBase {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: rgba(2, 6, 23, 0.35);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  backdrop-filter: blur(8px);
+}
+
+.snakeJoystickKnob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 62px;
+  height: 62px;
+  border-radius: 999px;
+  background: rgba(2, 6, 23, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.snakeTouchButtons {
+  position: absolute;
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  display: grid;
+  gap: 10px;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.snakeTouchButton {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(2, 6, 23, 0.6);
+  color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+}
+
+.snakeSettings {
+  position: absolute;
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
+  top: calc(env(safe-area-inset-top, 0px) + 72px);
+  z-index: 5;
+  width: min(360px, calc(100% - 32px));
+  padding: 14px 14px;
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  backdrop-filter: blur(12px);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.snakeSettingsTitle {
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.snakeSettingsRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0;
+}
+
+.snakeSettingsLabel {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.snakeSettingsRange {
+  width: 160px;
+}
+
+.snakeSettingsFooter {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+

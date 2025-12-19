@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Snake3DGame icon">
+  <defs>
+    <radialGradient id="bg" cx="35%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#0b1020"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <linearGradient id="snake" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="60%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#16a34a"/>
+    </linearGradient>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feColorMatrix
+        in="blur"
+        type="matrix"
+        values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .45 0"
+        result="glow"
+      />
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect x="16" y="16" width="224" height="224" rx="56" fill="url(#bg)"/>
+
+  <!-- Stylized snake "S" track -->
+  <path
+    d="M176 68c-18-18-78-14-86 14-7 25 22 34 52 38 36 5 62 20 54 49-10 34-78 44-112 10"
+    fill="none"
+    stroke="url(#snake)"
+    stroke-width="22"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    filter="url(#softGlow)"
+  />
+
+  <!-- Head -->
+  <circle cx="176" cy="68" r="17" fill="url(#snake)" filter="url(#softGlow)"/>
+  <circle cx="182" cy="64" r="3.2" fill="#0b1020"/>
+  <circle cx="170" cy="64" r="3.2" fill="#0b1020"/>
+
+  <!-- Small tongue -->
+  <path
+    d="M176 86c0 9 6 11 10 14m-10-14c0 9-6 11-10 14"
+    fill="none"
+    stroke="#ef4444"
+    stroke-width="3.5"
+    stroke-linecap="round"
+  />
+</svg>
+
