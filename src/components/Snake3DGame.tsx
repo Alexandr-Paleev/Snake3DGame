@@ -26,6 +26,32 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max)
 }
 
+function wrapCoord(value: number): number {
+  const m = ((value + HALF_ARENA) % ARENA_SIZE + ARENA_SIZE) % ARENA_SIZE
+  return m - HALF_ARENA
+}
+
+function wrapDelta(delta: number): number {
+  const m = ((delta + HALF_ARENA) % ARENA_SIZE + ARENA_SIZE) % ARENA_SIZE
+  return m - HALF_ARENA
+}
+
+function wrapVectorXZ(v: THREE.Vector3): THREE.Vector3 {
+  return new THREE.Vector3(wrapCoord(v.x), v.y, wrapCoord(v.z))
+}
+
+function wrapVectorXZToNearest(vWrapped: THREE.Vector3, reference: THREE.Vector3): THREE.Vector3 {
+  const kx = Math.round((reference.x - vWrapped.x) / ARENA_SIZE)
+  const kz = Math.round((reference.z - vWrapped.z) / ARENA_SIZE)
+  return new THREE.Vector3(vWrapped.x + kx * ARENA_SIZE, vWrapped.y, vWrapped.z + kz * ARENA_SIZE)
+}
+
+function torusDistanceXZ(a: THREE.Vector3, b: THREE.Vector3): number {
+  const dx = wrapDelta(a.x - b.x)
+  const dz = wrapDelta(a.z - b.z)
+  return Math.hypot(dx, dz)
+}
+
 function smoothAlpha(dt: number, responsiveness: number): number {
   return 1 - Math.exp(-responsiveness * dt)
 }
@@ -70,6 +96,14 @@ export function Snake3DGame() {
   const [showTouchControls, setShowTouchControls] = useState(false)
   const [joystickKnob, setJoystickKnob] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isWallWrapEnabled, setIsWallWrapEnabled] = useState<boolean>(() => {
+    try {
+      const raw = window.localStorage.getItem('snake3d_walls_wrap')
+      return raw === null ? true : raw === '1'
+    } catch {
+      return true
+    }
+  })
   const [steerSensitivity, setSteerSensitivity] = useState<number>(() => {
     try {
       const raw = window.localStorage.getItem('snake3d_steer_sens')
@@ -95,11 +129,13 @@ export function Snake3DGame() {
   const cameraModeRef = useRef<'head' | 'chase'>('chase')
   const steerSensitivityRef = useRef(steerSensitivity)
   const isHapticsEnabledRef = useRef(isHapticsEnabled)
+  const isWallWrapEnabledRef = useRef(isWallWrapEnabled)
 
   const headPosRef = useRef(new THREE.Vector3(0, 0, 0))
   const yawRef = useRef(0)
   const spineRef = useRef<THREE.Vector3[]>([])
   const foodPosRef = useRef(new THREE.Vector3(0, 0, 0))
+  const headWrapShiftRef = useRef<{ x: number; z: number }>({ x: 0, z: 0 })
 
   const controlsRef = useRef<ControlsState>({
     keySteerLeft: false,
@@ -155,6 +191,15 @@ export function Snake3DGame() {
     }
     isHapticsEnabledRef.current = isHapticsEnabled
   }, [isHapticsEnabled])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('snake3d_walls_wrap', isWallWrapEnabled ? '1' : '0')
+    } catch {
+      // ignore
+    }
+    isWallWrapEnabledRef.current = isWallWrapEnabled
+  }, [isWallWrapEnabled])
 
   useEffect(() => {
     const mq = window.matchMedia?.('(pointer: coarse)')
@@ -223,6 +268,42 @@ export function Snake3DGame() {
     grid.position.y = 0.001
     scene.add(grid)
 
+    const wallHalf = HALF_ARENA - 0.6
+    const wallHeight = 2.4
+    const wallThickness = 0.22
+    const wallMat = new THREE.MeshStandardMaterial({
+      color: '#60a5fa',
+      roughness: 0.6,
+      metalness: 0.05,
+      emissive: new THREE.Color('#0b3a6b'),
+      emissiveIntensity: 0.6,
+      transparent: true,
+      opacity: 0.18,
+    })
+    const walls: THREE.Mesh[] = []
+    const wallGeomX = new THREE.BoxGeometry(wallThickness, wallHeight, ARENA_SIZE)
+    const wallGeomZ = new THREE.BoxGeometry(ARENA_SIZE, wallHeight, wallThickness)
+
+    const wallRight = new THREE.Mesh(wallGeomX, wallMat)
+    wallRight.position.set(wallHalf, wallHeight / 2, 0)
+    scene.add(wallRight)
+    walls.push(wallRight)
+
+    const wallLeft = new THREE.Mesh(wallGeomX, wallMat)
+    wallLeft.position.set(-wallHalf, wallHeight / 2, 0)
+    scene.add(wallLeft)
+    walls.push(wallLeft)
+
+    const wallTop = new THREE.Mesh(wallGeomZ, wallMat)
+    wallTop.position.set(0, wallHeight / 2, wallHalf)
+    scene.add(wallTop)
+    walls.push(wallTop)
+
+    const wallBottom = new THREE.Mesh(wallGeomZ, wallMat)
+    wallBottom.position.set(0, wallHeight / 2, -wallHalf)
+    scene.add(wallBottom)
+    walls.push(wallBottom)
+
     const maxInstances = 1500
     const segmentGeom = new THREE.BoxGeometry(0.92, 0.92, 0.92)
     const segmentMat = new THREE.MeshStandardMaterial({
@@ -265,6 +346,7 @@ export function Snake3DGame() {
       yawRef.current = 0
       spineRef.current = [headPosRef.current.clone()]
       foodPosRef.current = randomFoodPosition(rng)
+      headWrapShiftRef.current = { x: 0, z: 0 }
       scoreRef.current = 0
       setScore(0)
       setIsPaused(false)
@@ -386,9 +468,19 @@ export function Snake3DGame() {
       const spine = spineRef.current
 
       const headPos = headPosRef.current
+      const headPosWrapped = wrapVectorXZ(headPos)
+      const shiftX = headPos.x - headPosWrapped.x
+      const shiftZ = headPos.z - headPosWrapped.z
+      const deltaShiftX = shiftX - headWrapShiftRef.current.x
+      const deltaShiftZ = shiftZ - headWrapShiftRef.current.z
+      if (deltaShiftX !== 0 || deltaShiftZ !== 0) {
+        cameraPos.x -= deltaShiftX
+        cameraPos.z -= deltaShiftZ
+        headWrapShiftRef.current = { x: shiftX, z: shiftZ }
+      }
       const headYaw = yawRef.current
 
-      headMesh.position.set(headPos.x, 0.72, headPos.z)
+      headMesh.position.set(headPosWrapped.x, 0.72, headPosWrapped.z)
       headMesh.rotation.y = headYaw
 
       const foodPos = foodPosRef.current
@@ -399,7 +491,8 @@ export function Snake3DGame() {
       for (let i = 1; i < maxSegments; i += 1) {
         const d = i * SEGMENT_SPACING
         const p = sampleAlongSpine(spine, d)
-        dummy.position.set(p.x, 0.5, p.z)
+        const pw = wrapVectorXZ(p)
+        dummy.position.set(pw.x, 0.5, pw.z)
         dummy.rotation.y = headYaw
 
         const t = i / Math.max(maxSegments - 1, 1)
@@ -420,23 +513,27 @@ export function Snake3DGame() {
       const height = isHeadCam ? 1.9 : 3.2
       const lookAhead = isHeadCam ? 8.0 : 3.8
 
-      scratchDesired
-        .copy(headPos)
+      const desiredWrapped = scratchDesired
+        .copy(headPosWrapped)
         .sub(scratchForward.clone().multiplyScalar(followDistance))
         .add(new THREE.Vector3(0, height, 0))
 
+      const desired = wrapVectorXZToNearest(desiredWrapped, cameraPos)
+
       const a = smoothAlpha(dt, isHeadCam ? 32 : 22)
-      cameraPos.lerp(scratchDesired, a)
+      cameraPos.lerp(desired, a)
       camera.position.set(cameraPos.x, cameraPos.y, cameraPos.z)
 
       headMesh.visible = true
       headMesh.scale.set(isHeadCam ? 0.28 : 1, isHeadCam ? 0.28 : 1, isHeadCam ? 0.28 : 1)
 
-      cameraLook
-        .copy(headPos)
+      const lookWrapped = cameraLook
+        .copy(headPosWrapped)
         .add(scratchForward.multiplyScalar(lookAhead))
         .add(new THREE.Vector3(0, 0.8, 0))
-      camera.lookAt(cameraLook)
+
+      const look = wrapVectorXZToNearest(lookWrapped, desired)
+      camera.lookAt(look)
     }
 
     const step = (dt: number) => {
@@ -457,17 +554,40 @@ export function Snake3DGame() {
       const forward = forwardFromYaw(yawRef.current)
       headPos.add(forward.multiplyScalar(speed * dt))
 
-      const half = HALF_ARENA - 0.6
-      if (Math.abs(headPos.x) > half || Math.abs(headPos.z) > half) {
-        setIsGameOver(true)
-        vibrate([60, 40, 80])
-        return
+      if (isWallWrapEnabledRef.current) {
+        const wrappedX = wrapCoord(headPos.x)
+        const wrappedZ = wrapCoord(headPos.z)
+        const shiftX = headPos.x - wrappedX
+        const shiftZ = headPos.z - wrappedZ
+        if (shiftX !== 0 || shiftZ !== 0) {
+          headPos.x = wrappedX
+          headPos.z = wrappedZ
+
+          const spine = spineRef.current
+          for (let i = 0; i < spine.length; i += 1) {
+            spine[i].x -= shiftX
+            spine[i].z -= shiftZ
+          }
+
+          cameraPos.x -= shiftX
+          cameraPos.z -= shiftZ
+        }
+      } else {
+        const half = HALF_ARENA - 0.6
+        if (Math.abs(headPos.x) > half || Math.abs(headPos.z) > half) {
+          setIsGameOver(true)
+          vibrate([60, 40, 80])
+          return
+        }
       }
 
       const desiredLength = BASE_LENGTH + scoreRef.current * LENGTH_PER_SCORE
       integrateSpine(headPos, desiredLength)
 
-      if (headPos.distanceTo(foodPosRef.current) < HEAD_RADIUS + FOOD_RADIUS) {
+      const foodDist = isWallWrapEnabledRef.current
+        ? torusDistanceXZ(headPos, foodPosRef.current)
+        : headPos.distanceTo(foodPosRef.current)
+      if (foodDist < HEAD_RADIUS + FOOD_RADIUS) {
         setScore((s) => {
           scoreRef.current = s + 1
           return s + 1
@@ -478,7 +598,8 @@ export function Snake3DGame() {
 
       const spine = spineRef.current
       for (let i = 18; i < spine.length; i += 1) {
-        if (headPos.distanceTo(spine[i]) < 0.72) {
+        const hitDist = isWallWrapEnabledRef.current ? torusDistanceXZ(headPos, spine[i]) : headPos.distanceTo(spine[i])
+        if (hitDist < 0.72) {
           setIsGameOver(true)
           vibrate([60, 40, 80])
           return
@@ -494,6 +615,8 @@ export function Snake3DGame() {
       lastTimeMs = timeMs
       step(dt)
       renderSnake(dt)
+      const showWalls = !isWallWrapEnabledRef.current
+      for (let i = 0; i < walls.length; i += 1) walls[i].visible = showWalls
       renderer.render(scene, camera)
     }
     rafId = window.requestAnimationFrame(animate)
@@ -514,6 +637,9 @@ export function Snake3DGame() {
       headMat.dispose()
       floorGeom.dispose()
       floorMat.dispose()
+      wallGeomX.dispose()
+      wallGeomZ.dispose()
+      wallMat.dispose()
       renderer.dispose()
     }
   }, [rng, vibrate])
@@ -525,13 +651,24 @@ export function Snake3DGame() {
       <div className="snakeGameCanvas" ref={containerRef} />
 
       <div className="snakeHud" aria-live="polite">
-        <div className="snakeHudRow">
+        <div className="snakeHudRow snakeHudRowTop">
           <span className="snakeHudLabel">Score</span>
           <span className="snakeHudValue">{score}</span>
           <span className="snakeHudLabel" style={{ marginLeft: 12 }}>
             Best
           </span>
           <span className="snakeHudValue">{bestScore}</span>
+          <span className="snakeHudSpacer" />
+          <button
+            type="button"
+            className="snakeHudButton"
+            onClick={() => {
+              setIsSettingsOpen(true)
+              vibrate(8)
+            }}
+          >
+            Settings
+          </button>
         </div>
         <div className="snakeHudRow">
           <span className="snakeHudHint">
@@ -654,9 +791,20 @@ export function Snake3DGame() {
         </div>
       )}
 
-      {showTouchControls && isSettingsOpen && (
+      {isSettingsOpen && (
         <div className="snakeSettings" role="dialog" aria-modal="false" aria-label="Settings">
           <div className="snakeSettingsTitle">Controls</div>
+          <label className="snakeSettingsRow">
+            <span className="snakeSettingsLabel">Walls wrap</span>
+            <input
+              type="checkbox"
+              checked={isWallWrapEnabled}
+              onChange={(e) => {
+                setIsWallWrapEnabled(e.target.checked)
+                vibrate(8)
+              }}
+            />
+          </label>
           <label className="snakeSettingsRow">
             <span className="snakeSettingsLabel">Steering sensitivity</span>
             <input

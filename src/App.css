@@ -51,6 +51,27 @@
   gap: 10px;
 }
 
+.snakeHudRowTop {
+  align-items: center;
+}
+
+.snakeHudSpacer {
+  flex: 1;
+}
+
+.snakeHudButton {
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(2, 6, 23, 0.4);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+}
+
+.snakeHudButton:hover {
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
 .snakeHudLabel {
   font-size: 12px;
   letter-spacing: 0.08em;
