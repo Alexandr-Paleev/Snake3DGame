@@ -270,7 +270,7 @@ export function Snake3DGame() {
 
     const wallHalf = HALF_ARENA - 0.6
     const wallHeight = 2.4
-    const wallThickness = 0.22
+    const wallThickness = 0.12
     const wallMat = new THREE.MeshStandardMaterial({
       color: '#60a5fa',
       roughness: 0.6,
@@ -278,7 +278,7 @@ export function Snake3DGame() {
       emissive: new THREE.Color('#0b3a6b'),
       emissiveIntensity: 0.6,
       transparent: true,
-      opacity: 0.18,
+      opacity: 0.14,
     })
     const walls: THREE.Mesh[] = []
     const wallGeomX = new THREE.BoxGeometry(wallThickness, wallHeight, ARENA_SIZE)
